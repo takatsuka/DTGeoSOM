@@ -1,0 +1,56 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install "ruff>=0.16,<0.17"
+      - run: ruff check .
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+    env:
+      MPLBACKEND: Agg              # no display on the runners; the PathViewer test draws off-screen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
+      - run: pip install -e ".[dev]"
+      - run: pytest --cov=mt.dtgeosom --cov-report=term-missing
+
+  examples:
+    # The two examples double as an end-to-end check (they reproduce the paper's figures 8 and 9).
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -e ".[dev]"
+      - run: python examples/01_binary_tree.py --save /tmp/01_binary_tree.png
+      - run: python examples/02_paths_between_samples.py --save /tmp/examples
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-figures
+          path: |
+            /tmp/01_binary_tree.png
+            /tmp/examples/*.png

@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dtgeosom"            # pip install dtgeosom  ->  import mt.dtgeosom
+dynamic = ["version"]
+description = "Path finding on a spherical Self-Organising Map (GeoSOM) with the distance transform and floodplain analysis."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Masahiro Takatsuka", email = "masa@takatsuka.org" }, { name = "Michael Bui" }]
+maintainers = [{ name = "Masahiro Takatsuka", email = "masa@takatsuka.org" }]
+keywords = [
+    "self-organizing map", "self-organising map", "SOM", "spherical SOM", "GeoSOM",
+    "distance transform", "path planning", "floodplain", "U-matrix", "trajectory",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Typing :: Typed",
+]
+dependencies = ["numpy>=1.23", "geosom>=1.2.0", "geodesicdomes>=1.3.0"]
+
+[project.optional-dependencies]
+interactive = ["geosom[interactive]>=1.2.0"]
+dev = ["geosom[interactive]>=1.2.0", "matplotlib>=3.6", "pytest>=7", "pytest-cov", "ruff>=0.16,<0.17", "build", "twine"]
+
+[project.urls]
+Homepage = "https://github.com/takatsuka/DTGeoSOM"
+Source = "https://github.com/takatsuka/DTGeoSOM"
+Issues = "https://github.com/takatsuka/DTGeoSOM/issues"
+
+# ---------------------------------------------------------------- setuptools
+[tool.setuptools.dynamic]
+version = { attr = "mt.dtgeosom.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mt.*"]
+namespaces = true             # `mt` is a PEP 420 namespace package (no __init__.py)
+
+[tool.setuptools.package-data]
+"mt.dtgeosom" = ["py.typed"]
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+# ---------------------------------------------------------------- ruff (lint + format)
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "NPY"]

@@ -1,0 +1,46 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it and the publication below (preferred-citation).
+title: "DTGeoSOM: path finding on spherical Self-Organising Maps with the distance transform and floodplain analysis"
+type: software
+authors:
+  - family-names: Takatsuka
+    given-names: Masahiro
+    email: masa@takatsuka.org
+version: 0.1.0
+license: AGPL-3.0-or-later
+repository-code: "https://github.com/takatsuka/DTGeoSOM"
+keywords:
+  - self-organizing map
+  - spherical self-organizing map
+  - distance transform
+  - path planning
+  - floodplain analysis
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: Bui
+      given-names: Michael
+    - family-names: Takatsuka
+      given-names: Masahiro
+  title: "Path finding on a spherical SOM using the distance transform and floodplain analysis"
+  collection-title: "Proceedings of the 6th International Workshop on Self-Organizing Maps (WSOM 2007)"
+  publisher:
+    name: "Neuroinformatics Group, Bielefeld University"
+  isbn: "978-3-00-022473-7"
+  year: 2007
+references:
+  - type: article
+    authors:
+      - family-names: Wu
+        given-names: Yingxin
+      - family-names: Takatsuka
+        given-names: Masahiro
+    title: "Spherical self-organizing map using efficient indexed geodesic data structure"
+    journal: "Neural Networks"
+    volume: 19
+    issue: "6-7"
+    start: 900
+    end: 910
+    year: 2006
+    doi: "10.1016/j.neunet.2006.05.021"
