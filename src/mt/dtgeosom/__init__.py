@@ -34,7 +34,7 @@ from mt.dtgeosom.pathfinder import KINDS, PathFinder, flattest_path, shortest_pa
 from mt.dtgeosom.paths import NoPathError, SOMPath, descend, path_cost
 from mt.dtgeosom.transform import Transform, distance_transform
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 __author__ = 'Masahiro Takatsuka, Michael Bui'
 __maintainer__ = 'Masahiro Takatsuka <masa@takatsuka.org>'
