@@ -5,16 +5,17 @@
 
 A GeoSOM is trained on one of the sample datasets shipped with geosom (default: wine, 13
 attributes).  Two samples are picked -- by default the two of different classes whose neurons are
-furthest apart on the sphere -- and three paths are found between their best matching units:
+furthest apart on the sphere -- and four kinds of path are found between their best matching units:
 
   * shortest  -- the paper's distance transform, step cost = U-height of the neuron entered
   * flattest  -- floodplain analysis: the shortest path that never climbs above the lowest
                  U-height threshold at which the two neurons are connected
+  * hops      -- the fewest steps on the geodesic grid, ignoring the data
   * edge      -- the distance transform with the distance between neighbouring weight vectors
                  as the step cost (the shortest walk in data space through the map's neurons)
 
 For each path the script prints the classes it passes, the highest U-height it climbs and the
-attributes that change most from start to goal, and writes a map with all three paths.  The weight
+attributes that change most from start to goal, and writes a map with all four paths.  The weight
 vectors along a path (`path.states(som)`) are the intermediate states between the two samples.
 
 Run:
@@ -65,15 +66,13 @@ def main():
     print(f'from sample {a} ({labels[a]}) to sample {b} ({labels[b]}): neurons {bmu[a]} -> {bmu[b]}\n')
 
     node_labels = som.node_labels(x, labels)
-    finders = {'shortest': PathFinder(som), 'flattest': PathFinder(som), 'edge': PathFinder(som, step='edge')}
-    paths = {}
-    for kind, finder in finders.items():
-        p = finder.flattest_path(x[a], x[b]) if kind == 'flattest' else finder.shortest_path(x[a], x[b])
-        paths[kind] = p
+    finder = PathFinder(som)
+    paths = finder.all_paths(x[a], x[b])                  # shortest, flattest, hops, edge
+    for kind, p in paths.items():
         empty = sum(1 for i in p.nodes if not node_labels[i])
         passed = ' > '.join(map(str, p.visited_labels(node_labels)))
-        print(f'{kind:9s} {len(p):3d} neurons ({empty} without data), highest U-height '
-              f'{p.max_height(finders["shortest"].u_height):.3f}, classes passed: {passed}')
+        print(f'{kind:9s} {p.hops:3d} hops ({empty} neurons without data), highest U-height '
+              f'{p.max_height(finder.u_height):.3f}, classes passed: {passed}')
 
     states = paths['flattest'].states(som)
     change = states[-1] - states[0]

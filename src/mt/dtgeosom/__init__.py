@@ -22,21 +22,22 @@ Modules
     mt.dtgeosom.floodplain   flattest_path (Algorithm 3), shortest_path, minimax_threshold, floodplain
     mt.dtgeosom.pathfinder   PathFinder: all of it for a trained GeoSOM / PlaneSOM
     mt.dtgeosom.datasets     the binary-tree data of the paper's section 4.1
-    mt.dtgeosom.gui          PathViewer: paths on GeoSOM's rotatable map projection (needs matplotlib)
+    mt.dtgeosom.gui          PathViewer: paths on GeoSOM's rotatable map projection; PathPicker: click two
+                             neurons to see the path between them (needs matplotlib)
 """
 
 from mt.dtgeosom.floodplain import flattest_path as lattice_flattest_path
 from mt.dtgeosom.floodplain import minimax_threshold
 from mt.dtgeosom.floodplain import shortest_path as lattice_shortest_path
 from mt.dtgeosom.lattice import Lattice
-from mt.dtgeosom.pathfinder import PathFinder, flattest_path, shortest_path
+from mt.dtgeosom.pathfinder import KINDS, PathFinder, flattest_path, shortest_path
 from mt.dtgeosom.paths import NoPathError, SOMPath, descend, path_cost
 from mt.dtgeosom.transform import Transform, distance_transform
 
 __version__ = '0.1.0'
 
 __all__ = [
-    'Lattice', 'PathFinder', 'SOMPath', 'Transform', 'NoPathError',
+    'KINDS', 'Lattice', 'PathFinder', 'SOMPath', 'Transform', 'NoPathError',
     'distance_transform', 'descend', 'path_cost', 'minimax_threshold',
     'shortest_path', 'flattest_path', 'lattice_shortest_path', 'lattice_flattest_path',
     '__version__',

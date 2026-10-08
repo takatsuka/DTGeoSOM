@@ -1,10 +1,11 @@
 # Releasing DTGeoSOM
 
-Releases are automatic (`.github/workflows/publish.yml`): **pushing a new version number to `main` publishes it.**
-When the version in `src/mt/dtgeosom/__init__.py` has no `vX.Y.Z` tag yet, the workflow builds the sdist and wheel,
-tests the wheel in a clean environment, uploads to PyPI with *trusted publishing* (no API token), then tags the commit
-and creates the GitHub release, with the `CHANGELOG.md` notes and the built files attached. Pushes that leave the
-version alone publish nothing.
+**Publishing a GitHub release publishes the package to PyPI** (`.github/workflows/publish.yml`). Pushing to `main`
+never publishes anything; it only runs the tests.
+
+When a release is published, the workflow checks that its tag matches the version numbers, builds the sdist and
+wheel, tests the wheel in a clean environment, uploads to PyPI with *trusted publishing* (no API token), and attaches
+the built files to the release.
 
 ## One-time set-up
 
@@ -17,10 +18,12 @@ version alone publish nothing.
 
 ## Each release
 
-1. Set the same version in `src/mt/dtgeosom/__init__.py` (`__version__`) and `CITATION.cff` (`version:`).
-2. Rename the *Unreleased* section of `CHANGELOG.md` to `## X.Y.Z — YYYY-MM-DD` (the workflow refuses to release
-   a version without its section, and uses it as the release notes).
-3. Optional rehearsal: Actions → publish → *Run workflow* builds, tests and uploads to TestPyPI only.
-4. Commit and push to `main`.  Watch Actions → publish; the release appears on PyPI and GitHub when it finishes.
+1. Set the same version in `src/mt/dtgeosom/__init__.py` (`__version__`) and `CITATION.cff` (`version:`), and
+   move the *Unreleased* notes in `CHANGELOG.md` under `## X.Y.Z — YYYY-MM-DD`.  Commit and push to `main`.
+2. Optional rehearsal: Actions → publish → *Run workflow* builds, tests and uploads to TestPyPI only.
+3. On GitHub: Releases → *Draft a new release* → new tag `vX.Y.Z` on `main` (e.g. `v0.1.0`), paste the changelog
+   notes, *Publish release*.  Watch Actions → publish; the package appears on PyPI when it finishes.
 
-A version can be uploaded to PyPI only once: to fix a broken release, bump the version (e.g. 0.1.1).
+If the tag does not match both version numbers the workflow stops before uploading: fix the versions, delete the
+release and its tag, and publish it again.  A version can be uploaded to PyPI only once: to fix a broken release,
+bump the version (e.g. 0.1.1).

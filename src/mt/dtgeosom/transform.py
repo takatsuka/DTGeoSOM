@@ -27,6 +27,8 @@ Cost of one step (``step``)
     'mean'                         cost(c -> n) = (u[c] + u[n]) / 2      (the same in both directions)
     'edge'                         cost(c -> n) = |w_c - w_n|           (distance between the two weight
                                                                          vectors: shortest path in data space)
+    'hops'                         cost(c -> n) = 1                     (the number of steps on the geodesic
+                                                                         grid: ignores the data altogether)
     a callable f(c, n) -> cost     any other non-negative cost
 
     ``diagonal_factor`` multiplies the cost of a step to a diagonal neighbour of the 2D index array
@@ -61,7 +63,7 @@ from numpy import ndarray
 
 from mt.dtgeosom.lattice import SQRT2, Lattice
 
-STEPS = ('node', 'mean', 'edge')
+STEPS = ('node', 'mean', 'edge', 'hops')
 METHODS = ('wavefront', 'dijkstra', 'paper')
 
 StepCost = str | Callable[[int, int], float]
@@ -111,6 +113,9 @@ def step_cost_function(lattice: Lattice, step: StepCost = 'node',
     elif step == 'node':
         def base(c, n):
             return u[n]
+    elif step == 'hops':
+        def base(c, n):
+            return 1.0
     elif step == 'mean':
         def base(c, n):
             return 0.5 * (u[c] + u[n])
@@ -149,7 +154,7 @@ def distance_transform(lattice: Lattice, goal: int, *, step: StepCost = 'node', 
 
     :param lattice: a Lattice (Lattice.from_som(som))
     :param goal: index of the goal neuron
-    :param step: cost of one step: 'node' (the paper), 'mean', 'edge' or a callable f(c, n)
+    :param step: cost of one step: 'node' (the paper), 'mean', 'edge', 'hops' or a callable f(c, n)
     :param diagonal_factor: multiplies the cost of steps across diagonals of the 2D index array
     :param allowed: optional (n,) bool mask of the neurons the wave may enter (the goal always may)
     :param method: 'wavefront' (the paper's queue), 'dijkstra', or 'paper' (Algorithm 2 verbatim)

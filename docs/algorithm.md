@@ -87,6 +87,20 @@ smallest `t ≥ max(u_start, u_goal)` at which start and goal are connected — 
 `threshold='minimax'` (or `minimax_threshold`) finds that value directly with a union-find sweep over the neurons in
 order of U-height and then runs the transform once. The tests check that both give the same threshold and path cost.
 
+## Other kinds of path
+
+Besides the paper's two paths, `PathFinder` offers two reference paths computed with the same distance transform
+(`finder.path(a, b, kind)`, `finder.all_paths(a, b)`):
+
+- **`'hops'`** — step cost 1: the fewest steps on the geodesic grid, which ignores the data entirely. Many routes
+  are usually equally short, so the descent breaks ties towards the neighbour geometrically nearest the goal
+  (`Lattice.positions`), which keeps the route close to the great circle.
+- **`'edge'`** — step cost |w_c − w_n|: the shortest walk through data space using only steps between neighbouring
+  neurons.
+
+Comparing them with `'shortest'` and `'flattest'` shows what the U-matrix costs and the floodplain add: where
+all four agree the map is flat; where `'flattest'` departs from the others it is going round a ridge.
+
 ## Results reproduced
 
 `examples/01_binary_tree.py` builds the paper's 15-node binary tree (15 × 15 graph-distance matrix), trains a GeoSOM(2)

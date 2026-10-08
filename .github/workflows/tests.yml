@@ -48,6 +48,7 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: python examples/01_binary_tree.py --save /tmp/01_binary_tree.png
       - run: python examples/02_paths_between_samples.py --save /tmp/examples
+      - run: python examples/03_interactive_paths.py --start 10 --goal 500 --paths all --save /tmp/examples/03_interactive_paths.png
       - uses: actions/upload-artifact@v4
         with:
           name: example-figures

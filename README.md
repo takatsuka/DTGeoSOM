@@ -47,10 +47,25 @@ q.threshold             # U-height of the floodplain that holds the path
 q.distance              # the distance map (cost from every neuron to the goal; inf = unreachable)
 q.visited_labels(som.node_labels(x, ds.labels))   # classes passed on the way
 
+paths = finder.all_paths(x[136], x[9])      # {'shortest', 'flattest', 'hops', 'edge'}: see "Kinds of path"
+
 from mt.dtgeosom.gui import plot_paths      # needs matplotlib: pip install "geosom[interactive]"
 plot_paths(som, [p, q], x, ds.labels, names=['shortest', 'flattest'],
            floodplain=q.threshold, projection='Wagner III').show()
 ```
+
+## Kinds of path
+
+| Kind | `finder.path(a, b, kind)` | What it minimises |
+|---|---|---|
+| `'shortest'` | `shortest_path` | the distance transform with the U-height of every neuron entered as its cost (the paper's shortest path) |
+| `'flattest'` | `flattest_path` | the same, on the floodplain: never above the lowest U-height at which start and goal connect (Algorithm 3) |
+| `'hops'` | `hop_path` | the number of steps on the geodesic grid, ignoring the data (ties: the straightest route) |
+| `'edge'` | `edge_path` | the sum of distances between neighbouring weight vectors: the shortest walk through data space |
+
+`finder.all_paths(a, b)` returns all four. In the interactive picker (example 03) each one has a check box (and a key,
+1–4) that turns it on or off; in any `PathViewer`, clicking a legend entry or `set_path_visible(kind, False)` hides a
+path.
 
 ## The algorithms
 
@@ -72,12 +87,12 @@ Details, and where the implementation departs from the printed pseudocode and wh
 | Module | What |
 |---|---|
 | `lattice` | `Lattice`: the SOM's neighbour graph, U-heights and diagonal flags (`Lattice.from_som(som)`) |
-| `transform` | `distance_transform`: the distance wave (`'wavefront'`, `'dijkstra'`, `'paper'`), step costs, `allowed` mask |
+| `transform` | `distance_transform`: the distance wave (`'wavefront'`, `'dijkstra'`, `'paper'`), step costs (`'node'`, `'mean'`, `'edge'`, `'hops'`), `allowed` mask |
 | `paths` | `descend` (Algorithm 1), `SOMPath`, `path_cost`, `NoPathError` |
 | `floodplain` | `flattest_path` (Algorithm 3), `shortest_path`, `minimax_threshold`, `floodplain` |
-| `pathfinder` | `PathFinder`: everything for a trained GeoSOM (also PlaneSOM / LineSOM) |
+| `pathfinder` | `PathFinder`: everything for a trained GeoSOM (also PlaneSOM / LineSOM); `path(a, b, kind)`, `all_paths`, `KINDS` |
 | `datasets` | `binary_tree`, `tree_path`, `path_agrees_with_tree` — the synthetic data of section 4.1 |
-| `gui` | `PathViewer` (GeoSOM's rotatable `SOMViewer` with paths and the floodplain), `plot_paths` |
+| `gui` | `PathViewer` (GeoSOM's rotatable `SOMViewer` with paths and the floodplain), `plot_paths`, `PathPicker` (click two neurons, see the path) |
 
 ## Examples
 
@@ -85,15 +100,17 @@ Details, and where the implementation departs from the printed pseudocode and wh
 python examples/01_binary_tree.py            # section 4.1: success rate of shortest vs flattest paths, figure 8/9
 python examples/01_binary_tree.py --show     # rotatable map
 python examples/02_paths_between_samples.py --data wine --show
+python examples/03_interactive_paths.py      # Select start & goal, click two neurons; then click neurons to inspect them
 ```
 
 On the binary tree (GeoSOM(2), 42 neurons, the paper's training settings, seed 0) 46 % of the shortest paths between
 two tree nodes follow the tree, and 82 % of the flattest paths.
 
-![Three paths between a cultivar-3 and a cultivar-1 wine](docs/images/02_paths_wine.png)
+![Four kinds of path between a cultivar-3 and a cultivar-1 wine](docs/images/02_paths_wine.png)
 
-*examples/02_paths_between_samples.py on the UCI wine data: the shortest paths (U-height and weight-vector-distance
-costs) cut straight across a border with no data; the flattest path goes through the cultivar-2 region.*
+*examples/02_paths_between_samples.py on the UCI wine data: the shortest (U-height), fewest-hops and data-space
+(`edge`) paths cut straight across a border with no data; the flattest path goes round it, through the cultivar-2
+region.*
 
 ## Development
 
@@ -108,8 +125,8 @@ GeoSOM and GeodesicDome in editable mode from `../GeoSOM` and `../GeodesicDome` 
 PyPI otherwise. Without the script: `pip install -e ".[dev]"`.
 
 GitHub Actions run the lint, the tests (Linux, macOS, Windows; Python 3.10–3.14) and the examples on every push and
-pull request. Releases are automatic: pushing a commit to `main` with a new version number publishes it to PyPI and
-creates the GitHub release — see [RELEASING.md](RELEASING.md).
+pull request. Publishing a GitHub release (tag `vX.Y.Z`) uploads that version to PyPI automatically — see
+[RELEASING.md](RELEASING.md).
 
 ## Licence and citation
 

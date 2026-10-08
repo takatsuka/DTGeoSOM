@@ -44,12 +44,15 @@ class Lattice:
     :param u_height: (n,) U-matrix height of every neuron (mean distance to its neighbours' weights)
     :param weights: optional (n, dim) weight vectors (for the 'edge' cost model)
     :param diagonal: optional list of bool arrays parallel to `neighbours` (diagonal in the 2D index array)
+    :param positions: optional (n, k) coordinates of the neurons on the lattice (unit vectors on a sphere); used
+                      to break ties between equally short paths in favour of the geometrically straighter one
     """
 
     neighbours: list[ndarray]
     u_height: ndarray
     weights: ndarray | None = None
     diagonal: list[ndarray] = field(default=None)  # type: ignore[assignment]
+    positions: ndarray | None = None
 
     def __post_init__(self):
         self.neighbours = [np.asarray(nb, dtype=int) for nb in self.neighbours]
@@ -62,6 +65,8 @@ class Lattice:
             self.diagonal = [np.asarray(d, dtype=bool) for d in self.diagonal]
         if self.weights is not None:
             self.weights = np.asarray(self.weights, dtype=float)
+        if self.positions is not None:
+            self.positions = np.asarray(self.positions, dtype=float)
 
     # ------------------------------------------------------------------ builders
     @classmethod
@@ -76,7 +81,10 @@ class Lattice:
         heights = som.u_matrix() if u_height is None else np.asarray(u_height, dtype=float)
         neighbours = [np.asarray(nb, dtype=int) for nb in som.neighbours]
         diagonal = _diagonal_flags(som, neighbours)
-        return cls(neighbours, heights, weights=np.asarray(som.weights, dtype=float), diagonal=diagonal)
+        positions = next((getattr(som, a) for a in ('points', 'positions', 'init_coords')
+                          if getattr(som, a, None) is not None), None)
+        return cls(neighbours, heights, weights=np.asarray(som.weights, dtype=float), diagonal=diagonal,
+                   positions=positions)
 
     @classmethod
     def from_edges(cls, n: int, edges, u_height, weights=None) -> Lattice:

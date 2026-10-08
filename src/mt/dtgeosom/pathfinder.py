@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2026 Masahiro Takatsuka. See the NOTICE file for attribution terms.
 """
-PathFinder: shortest and flattest paths between neurons of a trained GeoSOM.
+PathFinder: paths between neurons of a trained GeoSOM -- shortest, flattest, fewest hops, or through data space.
 
     from mt.geosom.GeoSOM import GeoSOM
     from mt.dtgeosom import PathFinder
@@ -11,6 +11,17 @@ PathFinder: shortest and flattest paths between neurons of a trained GeoSOM.
     p = finder.shortest_path(data[3], data[120])     # samples (mapped to their BMUs) or neuron indices
     q = finder.flattest_path(data[3], data[120])     # stays on the floodplain of the U-matrix
     p.nodes, p.cost, p.states(som)                   # neurons, cost, weight vectors along the path
+    finder.path(a, b, 'hops')                        # any of KINDS (below)
+
+Kinds of path (KINDS)
+    'shortest'  distance transform with the PathFinder's step cost (default: the U-height of every neuron
+                entered, as in Bui and Takatsuka 2007) -- avoids high U-heights, but may still cross a ridge
+    'flattest'  floodplain analysis (Algorithm 3): the shortest path that stays below the lowest U-height
+                threshold at which start and goal are connected -- goes round the ridges
+    'hops'      the fewest steps on the geodesic grid, ignoring the data (the shortest route on the lattice
+                itself; among equally short ones, the geometrically straightest)
+    'edge'      distance transform with |w_c - w_n|, the distance between neighbouring weight vectors, as the
+                step cost -- the shortest walk through data space along the map's neurons
 
 Works with any trained mt.geosom map that has `neighbours`, `u_matrix()` and `weights` (GeoSOM,
 PlaneSOM, LineSOM).  The lattice and its U-matrix are taken from the SOM when the PathFinder is
@@ -25,8 +36,10 @@ from numpy import ndarray
 
 from mt.dtgeosom import floodplain as fp
 from mt.dtgeosom.lattice import Lattice
-from mt.dtgeosom.paths import SOMPath
+from mt.dtgeosom.paths import SOMPath, descend
 from mt.dtgeosom.transform import StepCost, Transform, distance_transform, step_cost_table
+
+KINDS = ('shortest', 'flattest', 'hops', 'edge')
 
 
 class PathFinder:
@@ -57,9 +70,15 @@ class PathFinder:
     def refresh(self):
         """Re-reads the lattice and U-matrix from the SOM (after it has been trained further)."""
         self.lattice = Lattice.from_som(self.som, self._u_height)
-        self._costs = None if self.method == 'paper' else step_cost_table(self.lattice, self.step,
-                                                                           self.diagonal_factor)
+        self._tables: dict = {}
+        self._costs = None if self.method == 'paper' else self._table(self.step)
         return self
+
+    def _table(self, step):
+        key = step if isinstance(step, str) else id(step)
+        if key not in self._tables:
+            self._tables[key] = step_cost_table(self.lattice, step, self.diagonal_factor)
+        return self._tables[key]
 
     # ------------------------------------------------------------------ helpers
     @property
@@ -94,14 +113,43 @@ class PathFinder:
         return fp.flattest_path(self.lattice, self.neuron(start), self.neuron(goal), threshold=threshold,
                                 rule=self.rule, **self._kw())
 
+    def hop_path(self, start, goal) -> SOMPath:
+        """The path with the fewest steps on the geodesic grid (the data are ignored)."""
+        return self._fixed_step_path(start, goal, 'hops')
+
+    def edge_path(self, start, goal) -> SOMPath:
+        """The shortest walk through data space: step cost = distance between neighbouring weight vectors."""
+        return self._fixed_step_path(start, goal, 'edge')
+
+    def path(self, start, goal, kind: str = 'shortest') -> SOMPath:
+        """A path of one of KINDS: 'shortest', 'flattest', 'hops' or 'edge'."""
+        find = {'shortest': self.shortest_path, 'flattest': self.flattest_path,
+                'hops': self.hop_path, 'edge': self.edge_path}.get(kind)
+        if find is None:
+            raise ValueError(f'kind must be one of {KINDS}, not {kind!r}')
+        return find(start, goal)
+
+    def all_paths(self, start, goal, kinds=KINDS) -> dict[str, SOMPath]:
+        """{kind: path} for several kinds between the same two neurons (or samples)."""
+        a, b = self.neuron(start), self.neuron(goal)
+        return {kind: self.path(a, b, kind) for kind in kinds}
+
+    def _fixed_step_path(self, start, goal, step: str) -> SOMPath:
+        a, b = self.neuron(start), self.neuron(goal)
+        method = 'wavefront' if self.method == 'paper' else self.method
+        dt = distance_transform(self.lattice, b, step=step, diagonal_factor=1.0, method=method,
+                                costs=step_cost_table(self.lattice, step) if self.diagonal_factor != 1.0
+                                else self._table(step))
+        nodes = descend(self.lattice, dt, a, rule='exact')
+        return SOMPath(nodes, float(dt.distance[a]), step, dt)
+
     def floodplain(self, threshold: float) -> ndarray:
         """(n,) bool: neurons with U-height <= threshold."""
         return fp.floodplain(self.lattice, threshold)
 
     def paths(self, pairs: Sequence[tuple], kind: str = 'shortest') -> list[SOMPath]:
         """Paths for several (start, goal) pairs."""
-        find = self.shortest_path if kind == 'shortest' else self.flattest_path
-        return [find(a, b) for a, b in pairs]
+        return [self.path(a, b, kind) for a, b in pairs]
 
 
 def shortest_path(som, start, goal, **kwargs) -> SOMPath:

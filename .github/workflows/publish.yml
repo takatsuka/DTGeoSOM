@@ -1,68 +1,42 @@
-# Automatic releases (see RELEASING.md).
+# Publishes to PyPI when a GitHub release is published (see RELEASING.md).
 #
-# On every push to main, if the version in src/mt/dtgeosom/__init__.py has no tag yet, this workflow
-#   1. checks that CITATION.cff has the same version and CHANGELOG.md has a section for it,
+# Create a release on GitHub (Releases -> Draft a new release) with a new tag vX.Y.Z and press "Publish
+# release".  This workflow then
+#   1. checks that the tag matches __version__ in src/mt/dtgeosom/__init__.py and the version in CITATION.cff,
 #   2. builds the sdist and wheel and tests the wheel in a clean environment,
 #   3. uploads them to PyPI (trusted publishing: no API token is stored anywhere),
-#   4. tags the commit vX.Y.Z and creates a GitHub release with the CHANGELOG notes and the files.
-# Pushes that do not change the version do nothing.  A manual run (Actions -> publish -> Run workflow)
-# is a rehearsal: it builds, tests and uploads to TestPyPI only.
+#   4. attaches the built files to the GitHub release.
+# Pushing to main never publishes anything.  A manual run (Actions -> publish -> Run workflow) is a rehearsal:
+# it builds, tests and uploads to TestPyPI only.
 name: publish
 
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
-concurrency:
-  group: publish
-  cancel-in-progress: false
-
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
-      release: ${{ steps.v.outputs.release }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0              # all tags
-      - id: v
-        name: Is there a new version?
-        run: |
-          VERSION=$(python3 -c "import re,pathlib;print(re.search(r'__version__\s*=\s*[\x27\x22]([^\x27\x22]+)', pathlib.Path('src/mt/dtgeosom/__init__.py').read_text()).group(1))")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if [ "${GITHUB_EVENT_NAME}" = "push" ] && ! git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
-            echo "release=true" >> "$GITHUB_OUTPUT"
-            echo "new version $VERSION: releasing"
-          else
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "version $VERSION (already tagged, or a manual rehearsal)"
-          fi
-
   build:
-    needs: version
-    if: needs.version.outputs.release == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Check CITATION.cff and CHANGELOG.md
+      - name: Check the tag matches __version__ and CITATION.cff
+        if: github.event_name == 'release'
         run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG=$(python -c "import re,pathlib;print(re.search(r'__version__\s*=\s*[\x27\x22]([^\x27\x22]+)', pathlib.Path('src/mt/dtgeosom/__init__.py').read_text()).group(1))")
           CFF=$(grep '^version:' CITATION.cff | awk '{print $2}')
-          echo "package=$VERSION citation=$CFF"
-          test "$VERSION" = "$CFF" || { echo "::error::CITATION.cff has version $CFF, the package $VERSION"; exit 1; }
-          grep -q "^## $VERSION" CHANGELOG.md || { echo "::error::CHANGELOG.md has no '## $VERSION' section"; exit 1; }
+          echo "tag=$TAG package=$PKG citation=$CFF"
+          test "$TAG" = "$PKG" || { echo "::error::tag v$TAG but __version__ is $PKG"; exit 1; }
+          test "$TAG" = "$CFF" || { echo "::error::tag v$TAG but CITATION.cff has $CFF"; exit 1; }
 
       - name: Point README links at GitHub (PyPI cannot follow relative paths)
         run: |
-          REF="$GITHUB_SHA"           # the released commit (its tag is only created after the upload)
+          REF="$GITHUB_SHA"
           sed -i -E "s#\]\((docs/images/[^)]+)\)#](https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${REF}/\1)#g" README.md
           sed -i -E "s#\]\(((docs|examples)/[^)]+\.md|LICENSE|NOTICE|CITATION\.cff|RELEASING\.md)\)#](https://github.com/${GITHUB_REPOSITORY}/blob/${REF}/\1)#g" README.md
           grep -n 'github' README.md
@@ -79,23 +53,14 @@ jobs:
           /tmp/wheeltest/bin/pip install "$(ls dist/*.whl)[interactive]" pytest
           cd /tmp && /tmp/wheeltest/bin/python -m pytest "$GITHUB_WORKSPACE/tests" -p no:cacheprovider
 
-      - name: Release notes from CHANGELOG.md
-        run: |
-          awk -v v="$VERSION" '$0 ~ "^## "v {on=1; next} /^## / && on {exit} on' CHANGELOG.md > notes.md
-          cat notes.md
-
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: notes
-          path: notes.md
 
   pypi:
-    needs: [version, build]
-    if: needs.version.outputs.release == 'true'
+    if: github.event_name == 'release'
+    needs: build
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -107,31 +72,25 @@ jobs:
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
 
-  github-release:
-    needs: [version, pypi]
+  release-files:
+    if: github.event_name == 'release'
+    needs: pypi
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
-      GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-      - uses: actions/download-artifact@v4
-        with:
-          name: notes
-      - name: Tag and create the GitHub release
-        run: |
-          gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" \
-            --title "DTGeoSOM $VERSION" --notes-file notes.md
+      - name: Attach the sdist and wheel to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 
   testpypi:
-    needs: [version, build]
     if: github.event_name == 'workflow_dispatch'
+    needs: build
     runs-on: ubuntu-latest
     environment: testpypi
     permissions:

@@ -262,3 +262,198 @@ def test_path_viewer(tmp_path, tree_som):
     assert v.paths == []
     arc = great_circle(som.points[[0, 1]])
     assert np.allclose(np.linalg.norm(arc, axis=1), 1)
+
+
+def test_path_picker(tree_som):
+    pytest.importorskip('matplotlib')
+    import matplotlib
+    matplotlib.use('Agg')
+    from types import SimpleNamespace
+
+    from mt.dtgeosom.gui import PathPicker
+
+    som, x, names = tree_som
+    picker = PathPicker(PathFinder(som), x, names)
+    assert picker.selecting == 'start'                      # no path yet: the first clicks choose the end points
+    picker.select_node(3)                                   # a click on neuron 3: the start
+    assert picker._pending_start == 3 and picker.selecting == 'goal' and picker.paths == []
+    picker.select_node(30)                                  # the goal: the shortest path appears
+    assert picker.goal == 30 and [p.kind for p in picker.paths] == ['shortest']
+    assert picker.paths[0].start == 3 and picker.paths[0].goal == 30
+
+    key = SimpleNamespace(inaxes=None)
+
+    def press(k):
+        key.key = k
+        picker._on_path_key(key)
+
+    for k in ('2', '3', '4'):                               # flattest, hops, edge
+        press(k)
+    assert [p.kind for p in picker.paths] == ['shortest', 'flattest', 'hops', 'edge']
+    press('1')                                              # hide shortest
+    assert [p.kind for p in picker.paths] == ['flattest', 'hops', 'edge']
+    press('m')                                              # distance maps: flattest, hops, edge, then off
+    assert picker.distance_kind == 'flattest'
+    press('m')
+    press('m')
+    assert picker.distance_kind == 'edge'
+    press('m')
+    assert picker.distance_kind is None
+    press('x')                                              # swap
+    assert picker.start == 30 and picker.goal == 3 and picker.paths[0].start == 30
+    press('a')
+    assert len(picker.paths) == 4
+    picker.pick(7)                                          # not selecting: a click only inspects
+    assert picker.inspected == 7 and picker.start == 30 and len(picker.paths) == 4
+    press('enter')                                          # Enter: choose new end points
+    picker.pick(7)
+    picker.pick(12)
+    assert (picker.start, picker.goal, picker.selecting) == (7, 12, None) and len(picker.paths) == 4
+    press('c')                                              # clear: no paths, selecting again
+    assert picker.start is None and picker.paths == [] and picker.selecting == 'start'
+    picker.pick(5)
+    assert picker.selecting == 'goal' and picker.start is None
+    with pytest.raises(ValueError):
+        PathPicker(PathFinder(som), kinds=['bananas'])
+
+
+# ---------------------------------------------------------------------------- kinds of path
+def bfs_hops(lattice, a):
+    from collections import deque
+    d = np.full(lattice.n, -1)
+    d[a] = 0
+    q = deque([a])
+    while q:
+        c = q.popleft()
+        for n in lattice.neighbours[c]:
+            if d[n] < 0:
+                d[n] = d[c] + 1
+                q.append(n)
+    return d
+
+
+def test_all_kinds(big_som):
+    from mt.dtgeosom import KINDS
+    som, x = big_som
+    finder = PathFinder(som)
+    rng = np.random.default_rng(5)
+    for a, b in rng.integers(0, som.n_nodes, size=(10, 2)):
+        a, b = int(a), int(b)
+        paths = finder.all_paths(a, b)
+        assert list(paths) == list(KINDS)
+        hops = bfs_hops(finder.lattice, b)[a]
+        for kind, p in paths.items():
+            assert p.kind == kind and p.start == a and p.goal == b
+            assert p.hops >= hops
+        assert paths['hops'].hops == hops and paths['hops'].cost == hops      # the fewest steps
+        edge = distance_transform(finder.lattice, b, step='edge', method='dijkstra').distance[a]
+        assert paths['edge'].cost == pytest.approx(edge)                       # the shortest walk in data space
+        assert path_cost(finder.lattice, paths['edge'].nodes, 'edge') == pytest.approx(edge)
+        assert paths['shortest'].cost <= path_cost(finder.lattice, paths['hops'].nodes) + 1e-9
+    assert finder.path(0, 5, 'hops').hops == bfs_hops(finder.lattice, 5)[0]
+    with pytest.raises(ValueError):
+        finder.path(0, 5, 'scenic')
+
+
+def test_hop_paths_are_straight_on_the_sphere():
+    """Among equally short hop paths the descent keeps to the great circle (no needless zigzag)."""
+    som = GeoSOM(8, seed=0).train(np.random.default_rng(0).random((100, 3)), epochs=2)
+    finder = PathFinder(som)
+    for a, b in [(5, 400), (100, 600), (17, 333)]:
+        p = finder.hop_path(a, b)
+        pts = som.points[p.nodes]
+        normal = np.cross(pts[0], pts[-1])
+        normal /= np.linalg.norm(normal)
+        assert np.abs(pts @ normal).max() < 2.5 * som.ring_length            # stays near the great circle
+
+
+def test_path_check_boxes_and_legend(tree_som):
+    pytest.importorskip('matplotlib')
+    import matplotlib
+    matplotlib.use('Agg')
+    from types import SimpleNamespace
+
+    from mt.dtgeosom.gui import PathPicker, plot_paths
+
+    som, x, names = tree_som
+    picker = PathPicker(PathFinder(som), x, names, kinds=['shortest', 'flattest'])
+    picker.set_endpoints(3, 30)
+    boxes = picker._kind_checks
+    assert boxes.get_status() == [True, True, False, False, True]          # shortest flattest hops edge floodplain
+    assert picker._flood_artist is not None
+    boxes.set_active(2)                                                     # tick hops
+    assert [p.kind for p in picker.paths] == ['shortest', 'flattest', 'hops']
+    boxes.set_active(0)                                                     # untick shortest
+    assert [p.kind for p in picker.paths] == ['flattest', 'hops']
+    boxes.set_active(4)                                                     # hide the floodplain crosses
+    assert not picker.show_flood and picker._flood_artist is None
+    picker._on_path_key(SimpleNamespace(inaxes=None, key='4'))             # keys update the boxes
+    assert boxes.get_status() == [False, True, True, True, False]
+    picker.next_distance_map()
+    assert 'flattest' in picker._distance_button.label.get_text()
+    legend_entry = next(a for a, i in picker._legend_map.items() if picker.paths[i].kind == 'hops')
+    picker._on_legend_pick(SimpleNamespace(artist=legend_entry))           # clicking the legend hides it too
+    assert 'hops' not in picker.kinds and boxes.get_status()[2] is False
+
+    finder = PathFinder(som)
+    viewer = plot_paths(som, list(finder.all_paths(3, 30).values()), x, names)
+    assert viewer.path_visible('hops')
+    viewer.set_path_visible('hops', False)
+    assert not viewer.path_visible('hops') and viewer.path_visible(0)
+    entry = next(a for a, i in viewer._legend_map.items() if i == 0)
+    viewer._on_legend_pick(SimpleNamespace(artist=entry))
+    assert not viewer.path_visible(0)
+    viewer.toggle_path(viewer.paths[0])
+    assert viewer.path_visible(0) and len(viewer.paths) == 4                # hidden paths are kept, not removed
+
+
+def test_inspect_neurons_on_the_path(tree_som):
+    pytest.importorskip('matplotlib')
+    import matplotlib
+    matplotlib.use('Agg')
+    from types import SimpleNamespace
+
+    from mt.dtgeosom.gui import PathPicker
+
+    som, x, names = tree_som
+    picker = PathPicker(PathFinder(som), x, names, kinds=['shortest', 'hops'])
+    picker.select_node(3)
+    picker.select_node(30)
+    path = picker.result['shortest']
+    middle = int(path.nodes[len(path) // 2])
+    picker.select_node(middle)                                  # a click on the path: inspect, keep the paths
+    assert (picker.start, picker.goal, picker.inspected, picker.selected) == (3, 30, middle, middle)
+    assert picker.paths and picker.positions(middle)['shortest'] == len(path) // 2
+    assert f'neuron {middle}' in picker._status.get_text()
+
+    key = SimpleNamespace(inaxes=None, key='n')
+    picker._on_path_key(key)                                    # n: the next neuron along the path
+    assert picker.inspected == int(path.nodes[len(path) // 2 + 1]) and picker.goal == 30
+    key.key = 'b'
+    picker._on_path_key(key)
+    picker._on_path_key(key)
+    assert picker.inspected == int(path.nodes[len(path) // 2 - 1])
+    for _ in range(len(path) + 2):                              # stops at the start
+        picker.step(-1)
+    assert picker.inspected == 3 and picker.start == 3
+
+    off = next(i for i in range(som.n_nodes) if not picker.on_path(i))
+    picker.select_node(off)                                     # a click off the paths: inspect, paths stay
+    assert picker.inspected == off and picker.goal == 30 and picker.paths
+    assert 'not on a path' in picker._status.get_text()
+
+    picker._on_select_button()                                  # the button: select new end points
+    assert picker.selecting == 'start' and 'START' in picker._select_button.label.get_text()
+    picker._on_select_button()                                  # pressed again: cancel, the paths stay
+    assert picker.selecting is None and picker.goal == 30 and picker.paths
+    picker._on_select_button()
+    picker.select_node(9)
+    assert picker.selecting == 'goal' and picker.goal == 30     # the old paths stay until the goal is clicked
+    key.key = 'escape'
+    picker._on_path_key(key)                                    # Esc cancels the half-made selection
+    assert picker.selecting is None and (picker.start, picker.goal) == (3, 30)
+    picker._on_select_button()
+    picker.select_node(9)
+    picker.select_node(20)
+    assert (picker.start, picker.goal) == (9, 20) and picker.result['shortest'].start == 9
+    assert picker._select_button.label.get_text() == 'Select start & goal'

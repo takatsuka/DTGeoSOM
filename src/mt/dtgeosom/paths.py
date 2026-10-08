@@ -58,8 +58,11 @@ def descend(lattice: Lattice, transform: Transform, start: int, *, rule: str = '
         else:
             score = np.array([dist[m] + cost(int(m), c, bool(d)) if ok else np.inf
                               for m, d, ok in zip(nb, lattice.diagonal[c], reachable, strict=True)])
-        # among equally good neighbours, prefer the one closest to the goal, then one not yet visited
-        order = np.lexsort((np.isin(nb, list(seen)), dist[nb], np.round(score, 12)))
+        # among equally good neighbours prefer the one lower on the map, then the one geometrically nearer the
+        # goal (a straighter path when many are equally short, e.g. counting hops), then one not yet visited
+        near = (np.linalg.norm(lattice.positions[nb] - lattice.positions[goal], axis=1)
+                if lattice.positions is not None else np.zeros(len(nb)))
+        order = np.lexsort((np.isin(nb, list(seen)), np.round(near, 9), dist[nb], np.round(score, 12)))
         nxt = int(nb[order[0]])
         if rule == 'steepest' and dist[nxt] >= dist[c] and dist[c] > 0:
             raise NoPathError(f'no neighbour of neuron {c} is lower on the distance map')
@@ -87,7 +90,7 @@ class SOMPath:
 
     nodes        neuron indices from start to goal
     cost         distance of the start on the final distance map
-    kind         'shortest' or 'flattest'
+    kind         'shortest', 'flattest', 'hops' or 'edge' (see mt.dtgeosom.pathfinder.KINDS)
     transform    the (last) Transform: its .distance is the distance map
     threshold    the U-height threshold of the floodplain that holds the path (flattest paths)
     thresholds   every threshold tried, in order (flattest paths)
@@ -115,6 +118,11 @@ class SOMPath:
 
     def __len__(self) -> int:
         return len(self.nodes)
+
+    @property
+    def hops(self) -> int:
+        """Number of steps between neighbouring neurons."""
+        return len(self.nodes) - 1
 
     def states(self, som) -> ndarray:
         """(len, dim) weight vectors along the path: the intermediate states from start to goal."""
