@@ -34,7 +34,7 @@ from mt.dtgeosom.pathfinder import KINDS, PathFinder, flattest_path, shortest_pa
 from mt.dtgeosom.paths import NoPathError, SOMPath, descend, path_cost
 from mt.dtgeosom.transform import Transform, distance_transform
 
-__version__ = '0.1.0'
+__version__ = '1.0.0'
 
 __all__ = [
     'KINDS', 'Lattice', 'PathFinder', 'SOMPath', 'Transform', 'NoPathError',
