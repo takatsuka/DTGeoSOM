@@ -245,8 +245,7 @@ and the three examples on every push and pull request.
 
 Publishing a GitHub release with a tag `vX.Y.Z` uploads that version to PyPI automatically
 (`.github/workflows/publish.yml`): the workflow checks the tag against `__version__` and `CITATION.cff`, builds and
-tests the package, uploads it with PyPI trusted publishing, and attaches the files to the release. Pushing to `main`
-never publishes. The one-time set-up and the steps are in [RELEASING.md](RELEASING.md).
+tests the package, and uploads it with PyPI trusted publishing. Pushing to `main` never publishes. The one-time set-up and the steps are in [RELEASING.md](RELEASING.md).
 
 ## Authors
 

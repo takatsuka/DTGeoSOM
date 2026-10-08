@@ -4,8 +4,7 @@
 never publishes anything; it only runs the tests.
 
 When a release is published, the workflow checks that its tag matches the version numbers, builds the sdist and
-wheel, tests the wheel in a clean environment, uploads to PyPI with *trusted publishing* (no API token), and attaches
-the built files to the release.
+wheel, tests the wheel in a clean environment, and uploads to PyPI with *trusted publishing* (no API token).
 
 ## One-time set-up
 

@@ -4,8 +4,7 @@
 # release".  This workflow then
 #   1. checks that the tag matches __version__ in src/mt/dtgeosom/__init__.py and the version in CITATION.cff,
 #   2. builds the sdist and wheel and tests the wheel in a clean environment,
-#   3. uploads them to PyPI (trusted publishing: no API token is stored anywhere),
-#   4. attaches the built files to the GitHub release.
+#   3. uploads them to PyPI (trusted publishing: no API token is stored anywhere).
 # Pushing to main never publishes anything.  A manual run (Actions -> publish -> Run workflow) is a rehearsal:
 # it builds, tests and uploads to TestPyPI only.
 name: publish
@@ -71,22 +70,6 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
-
-  release-files:
-    if: github.event_name == 'release'
-    needs: pypi
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-      - name: Attach the sdist and wheel to the GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber --repo "$GITHUB_REPOSITORY"
 
   testpypi:
     if: github.event_name == 'workflow_dispatch'
