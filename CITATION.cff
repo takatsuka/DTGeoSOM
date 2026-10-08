@@ -7,6 +7,8 @@ authors:
   - family-names: Takatsuka
     given-names: Masahiro
     email: masa@takatsuka.org
+  - family-names: Bui
+    given-names: Michael
 version: 1.0.0
 license: AGPL-3.0-or-later
 repository-code: "https://github.com/takatsuka/DTGeoSOM"

@@ -10,7 +10,9 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE", "NOTICE"]
-authors = [{ name = "Masahiro Takatsuka", email = "masa@takatsuka.org" }, { name = "Michael Bui" }]
+# Names only, so both appear in the Author field in this order ("Masahiro Takatsuka, Michael Bui"); an entry
+# with an email goes to a separate Author-email field, which would leave Michael alone under "Author".
+authors = [{ name = "Masahiro Takatsuka" }, { name = "Michael Bui" }]
 maintainers = [{ name = "Masahiro Takatsuka", email = "masa@takatsuka.org" }]
 keywords = [
     "self-organizing map", "self-organising map", "SOM", "spherical SOM", "GeoSOM",

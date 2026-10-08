@@ -36,6 +36,9 @@ from mt.dtgeosom.transform import Transform, distance_transform
 
 __version__ = '1.0.0'
 
+__author__ = 'Masahiro Takatsuka, Michael Bui'
+__maintainer__ = 'Masahiro Takatsuka <masa@takatsuka.org>'
+
 __all__ = [
     'KINDS', 'Lattice', 'PathFinder', 'SOMPath', 'Transform', 'NoPathError',
     'distance_transform', 'descend', 'path_cost', 'minimax_threshold',

@@ -24,7 +24,7 @@ path — as in figures 8 and 9 of the paper. ✕ = neurons above the floodplain.
 [Kinds of path](#kinds-of-path) · [Interactive path picker](#interactive-path-picker) ·
 [Drawing paths in scripts](#drawing-paths-in-scripts) · [API overview](#api-overview) ·
 [The algorithms](#the-algorithms) · [Examples](#examples) · [Development](#development) ·
-[Releasing](#releasing) · [Licence and citation](#licence-and-citation)
+[Releasing](#releasing) · [Authors](#authors) · [Licence and citation](#licence-and-citation)
 
 ## Features
 
@@ -247,6 +247,11 @@ Publishing a GitHub release with a tag `vX.Y.Z` uploads that version to PyPI aut
 (`.github/workflows/publish.yml`): the workflow checks the tag against `__version__` and `CITATION.cff`, builds and
 tests the package, uploads it with PyPI trusted publishing, and attaches the files to the release. Pushing to `main`
 never publishes. The one-time set-up and the steps are in [RELEASING.md](RELEASING.md).
+
+## Authors
+
+- **Masahiro Takatsuka** (masa@takatsuka.org) — author and maintainer
+- **Michael Bui** — co-author (and co-author of the WSOM 2007 paper this package implements)
 
 ## Licence and citation
 
