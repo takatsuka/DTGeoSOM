@@ -13,7 +13,7 @@ PathFinder: paths between neurons of a trained GeoSOM -- shortest, flattest, few
     p.nodes, p.cost, p.states(som)                   # neurons, cost, weight vectors along the path
     finder.path(a, b, 'hops')                        # any of KINDS (below)
 
-Kinds of path (KINDS)
+Kinds of path (KINDS; path() and the picker use 'flattest' unless told otherwise)
     'shortest'  distance transform with the PathFinder's step cost (default: the U-height of every neuron
                 entered, as in Bui and Takatsuka 2007) -- avoids high U-heights, but may still cross a ridge
     'flattest'  floodplain analysis (Algorithm 3): the shortest path that stays below the lowest U-height
@@ -40,6 +40,7 @@ from mt.dtgeosom.paths import SOMPath, descend
 from mt.dtgeosom.transform import StepCost, Transform, distance_transform, step_cost_table
 
 KINDS = ('shortest', 'flattest', 'hops', 'edge')
+DEFAULT_KIND = 'flattest'          # used when no kind is given: stays on the data, round empty borders
 
 
 class PathFinder:
@@ -121,8 +122,8 @@ class PathFinder:
         """The shortest walk through data space: step cost = distance between neighbouring weight vectors."""
         return self._fixed_step_path(start, goal, 'edge')
 
-    def path(self, start, goal, kind: str = 'shortest') -> SOMPath:
-        """A path of one of KINDS: 'shortest', 'flattest', 'hops' or 'edge'."""
+    def path(self, start, goal, kind: str = DEFAULT_KIND) -> SOMPath:
+        """A path of one of KINDS: 'shortest', 'flattest', 'hops' or 'edge' (default: 'flattest')."""
         find = {'shortest': self.shortest_path, 'flattest': self.flattest_path,
                 'hops': self.hop_path, 'edge': self.edge_path}.get(kind)
         if find is None:
@@ -147,7 +148,7 @@ class PathFinder:
         """(n,) bool: neurons with U-height <= threshold."""
         return fp.floodplain(self.lattice, threshold)
 
-    def paths(self, pairs: Sequence[tuple], kind: str = 'shortest') -> list[SOMPath]:
+    def paths(self, pairs: Sequence[tuple], kind: str = DEFAULT_KIND) -> list[SOMPath]:
         """Paths for several (start, goal) pairs."""
         return [self.path(a, b, kind) for a, b in pairs]
 

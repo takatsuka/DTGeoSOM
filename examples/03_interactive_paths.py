@@ -30,7 +30,7 @@ it climbs, and the classes of the samples it passes.  Click a neuron's attribute
 to inspect it as usual.
 
 Run:
-    python examples/03_interactive_paths.py                       # wine
+    python examples/03_interactive_paths.py                       # wine; the flattest path (the default)
     python examples/03_interactive_paths.py --paths all           # all four kinds from the start
     python examples/03_interactive_paths.py --data penguins --paths shortest,flattest
     python examples/03_interactive_paths.py --data tree           # the paper's binary tree (GeoSOM(2))
@@ -51,9 +51,9 @@ def main():
     ap.add_argument('--data', default='wine', help="iris, penguins, wine, clusters, a CSV file, or 'tree'")
     ap.add_argument('--frequency', type=int, help='GeodesicDome frequency (default 8; 2 for the tree)')
     ap.add_argument('--epochs', type=int, default=30)
-    ap.add_argument('--paths', default='shortest',
+    ap.add_argument('--paths', default='flattest',
                     help=f"kinds of path to show at first, comma-separated, from {', '.join(KINDS)}; or 'all'")
-    ap.add_argument('--flattest', action='store_true', help='same as adding flattest to --paths')
+    ap.add_argument('--flattest', action='store_true', help='same as adding flattest to --paths (it is the default)')
     ap.add_argument('--step', default='node', choices=['node', 'mean', 'edge', 'hops'],
                     help="step cost of the 'shortest' and 'flattest' paths (default node = U-height, the paper)")
     ap.add_argument('--projection', default='Wagner III')

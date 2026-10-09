@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- `flattest` is now the default kind of path: `PathFinder.path(a, b)` and `paths(pairs)` use it when no kind is
+  given, the picker (`PathPicker`, example 03) opens showing the flattest path, and example 03's `--paths` defaults
+  to `flattest`.
+- The picker draws a lone path at a normal line width (it used the thinnest of the nested widths).
+- `docs/path_methods.md`: a guide to the four kinds of path, with their algorithms and a worked example.
+
 ## 0.1.0 — 2026-10-08
 
 First version: the method of Bui and Takatsuka (WSOM 2007) on GeoSOM.

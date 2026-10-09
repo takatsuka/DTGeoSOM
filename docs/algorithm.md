@@ -1,7 +1,9 @@
 # The algorithms, and how they map onto GeoSOM
 
 Bui and Takatsuka (WSOM 2007) describe three algorithms for path finding on the Geodesic SOM. This page states
-each one as implemented, and notes every place where the code departs from the printed pseudocode.
+each one as implemented, and notes every place where the code departs from the printed pseudocode. For a guide to
+the four kinds of path (`shortest`, `flattest`, `hops`, `edge`), with a worked example, see
+[path_methods.md](path_methods.md).
 
 ## Setting
 

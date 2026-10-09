@@ -81,7 +81,7 @@ paths = finder.all_paths(x[136], x[9])      # {'shortest', 'flattest', 'hops', '
 from mt.dtgeosom.gui import PathPicker, plot_paths     # needs matplotlib
 plot_paths(som, list(paths.values()), x, ds.labels, names=list(paths),
            floodplain=q.threshold, projection='Wagner III').show()
-PathPicker(finder, x, ds.labels).show()                # pick the start and goal with the mouse
+PathPicker(finder, x, ds.labels).show()                # pick the start and goal with the mouse (flattest path)
 ```
 
 ## Kinds of path
@@ -93,8 +93,11 @@ PathPicker(finder, x, ds.labels).show()                # pick the start and goal
 | `'hops'` | `hop_path` | the number of steps on the geodesic grid, ignoring the data (ties: the straightest route) | yellow |
 | `'edge'` | `edge_path` | the sum of distances between neighbouring weight vectors: the shortest walk through data space | lime |
 
-`finder.all_paths(a, b)` returns all four as a dict. Comparing them shows what the U-matrix and the floodplain add:
+**`flattest` is the default**: `finder.path(a, b)` and `finder.paths(pairs)` use it when no kind is given, and the
+picker opens with only the flattest path shown. `finder.all_paths(a, b)` returns all four as a dict. Comparing them shows what the U-matrix and the floodplain add:
 where all four agree the map is flat; where `flattest` departs from the others it is going round a ridge with no data.
+Each method — its idea, algorithm, properties and a worked example — is explained in
+[docs/path_methods.md](docs/path_methods.md).
 
 ![Four kinds of path between a cultivar-3 and a cultivar-1 wine](docs/images/02_paths_wine.png)
 
@@ -109,7 +112,7 @@ region.*
 ![The path picker: three kinds of path, a neuron on the flattest path being inspected](docs/images/03_path_picker.png)
 
 ```bash
-python examples/03_interactive_paths.py                          # wine data
+python examples/03_interactive_paths.py                          # wine data, the flattest path (the default)
 python examples/03_interactive_paths.py --paths all              # all four kinds from the start
 python examples/03_interactive_paths.py --data tree              # the paper's binary tree on a GeoSOM(2)
 python examples/03_interactive_paths.py --data penguins --paths shortest,flattest
@@ -128,7 +131,7 @@ python examples/03_interactive_paths.py --data penguins --paths shortest,flattes
 
 The panel under the map lists each path's number of hops, its cost, the highest U-height it climbs and the classes of the
 samples it passes. Example options: `--data` (iris, penguins, wine, clusters, a CSV file, or `tree`), `--paths`
-(comma-separated kinds, or `all`), `--step` (the step cost of `shortest` and `flattest`: `node`, `mean`, `edge`,
+(comma-separated kinds, or `all`; default `flattest`), `--step` (the step cost of `shortest` and `flattest`: `node`, `mean`, `edge`,
 `hops`), `--projection`, `--frequency`, `--epochs`, `--start` / `--goal` (pre-select a path), and `--save FILE` (write
 an image instead of opening a window).
 
@@ -168,7 +171,7 @@ trained map (GeoSOM, PlaneSOM or LineSOM).
 | | |
 |---|---|
 | `shortest_path(a, b)`, `flattest_path(a, b, threshold='iterative')`, `hop_path(a, b)`, `edge_path(a, b)` | one path; `a`, `b` are neuron indices or samples |
-| `path(a, b, kind)`, `all_paths(a, b, kinds=KINDS)`, `paths(pairs, kind)` | by kind; all kinds; many pairs |
+| `path(a, b, kind='flattest')`, `all_paths(a, b, kinds=KINDS)`, `paths(pairs, kind='flattest')` | by kind (default `'flattest'`); all kinds; many pairs |
 | `distance_map(goal, allowed=None)` | the distance transform towards `goal` (a `Transform`; `.distance` is the map) |
 | `floodplain(threshold)`, `u_height`, `neuron(x)` | neurons below a U-height; the U-heights; a sample's BMU |
 | `PathFinder.paper(som)` | the paper's settings: Algorithm 2 verbatim, √2 diagonals, steepest descent |
@@ -209,7 +212,8 @@ trained map (GeoSOM, PlaneSOM or LineSOM).
 | Everything exactly as printed | `PathFinder.paper(som)` (`method='paper'`, steepest descent) |
 
 Details, and where the implementation departs from the printed pseudocode and why:
-[docs/algorithm.md](docs/algorithm.md).
+[docs/algorithm.md](docs/algorithm.md). A guide to each kind of path, with its algorithm and a worked example:
+[docs/path_methods.md](docs/path_methods.md).
 
 ## Examples
 

@@ -261,7 +261,7 @@ class PathPicker(PathViewer):
 
     :param finder: a PathFinder for the trained GeoSOM (its step cost is used by 'shortest' and 'flattest')
     :param data, labels: optional samples and their labels (classes passed along the path are reported)
-    :param kinds: the kinds of path to show at first (default: 'shortest' only)
+    :param kinds: the kinds of path to show at first (default: 'flattest' only)
     :param flattest: shorthand for adding 'flattest' to `kinds`
     :param kwargs: anything PathViewer / SOMViewer accepts (projection, view, node_labels, title, ...)
     """
@@ -272,7 +272,7 @@ class PathPicker(PathViewer):
             'n / b: next / previous on the path\n'
             'paths: boxes on the left or keys 1-4, a all  ·  m distance map  ·  x swap  ·  c clear')
 
-    def __init__(self, finder, data=None, labels=None, *, kinds=('shortest',), flattest: bool = False, **kwargs):
+    def __init__(self, finder, data=None, labels=None, *, kinds=('flattest',), flattest: bool = False, **kwargs):
         from mt.dtgeosom.pathfinder import KINDS
         self.finder = finder
         self.start: int | None = None
@@ -556,7 +556,9 @@ class PathPicker(PathViewer):
         f = self.finder
         self.result = {kind: f.path(self.start, self.goal, kind) for kind in self.kinds}
         lines = []
-        widths = dict(zip(self.result, (5.5, 4.0, 2.7, 1.5)[-len(self.result):] if self.result else (), strict=True))
+        # nested strokes when several paths are shown, widest first; a lone path gets a normal width
+        nested = {1: (3.2,), 2: (4.5, 2.4), 3: (5.5, 3.6, 2.0), 4: (5.5, 4.0, 2.7, 1.5)}
+        widths = dict(zip(self.result, nested.get(len(self.result), ()), strict=True))
         for kind, p in self.result.items():
             passed = ''
             if self._node_labels is not None:

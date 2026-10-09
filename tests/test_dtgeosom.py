@@ -273,7 +273,8 @@ def test_path_picker(tree_som):
     from mt.dtgeosom.gui import PathPicker
 
     som, x, names = tree_som
-    picker = PathPicker(PathFinder(som), x, names)
+    assert PathPicker(PathFinder(som), x, names).kinds == ['flattest']      # the default: the flattest path
+    picker = PathPicker(PathFinder(som), x, names, kinds=['shortest'])
     assert picker.selecting == 'start'                      # no path yet: the first clicks choose the end points
     picker.select_node(3)                                   # a click on neuron 3: the start
     assert picker._pending_start == 3 and picker.selecting == 'goal' and picker.paths == []
@@ -351,6 +352,8 @@ def test_all_kinds(big_som):
         assert path_cost(finder.lattice, paths['edge'].nodes, 'edge') == pytest.approx(edge)
         assert paths['shortest'].cost <= path_cost(finder.lattice, paths['hops'].nodes) + 1e-9
     assert finder.path(0, 5, 'hops').hops == bfs_hops(finder.lattice, 5)[0]
+    assert finder.path(0, 5).kind == 'flattest'                            # the default kind
+    assert [p.kind for p in finder.paths([(0, 5), (7, 9)])] == ['flattest', 'flattest']
     with pytest.raises(ValueError):
         finder.path(0, 5, 'scenic')
 
