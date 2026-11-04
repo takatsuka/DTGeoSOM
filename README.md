@@ -127,7 +127,7 @@ python examples/03_interactive_paths.py --data penguins --paths shortest,flattes
 | Show or hide the floodplain | the **floodplain ✕** check box: crosses on the neurons above the flattest path's threshold |
 | Colour the map by a distance map | the **distance map** button or `m`: each press shows the next shown path's distance map to the goal, then the U-matrix again |
 | Swap start and goal / clear | `x` / `c` |
-| Rotate, change projection, layers, labels | as in GeoSOM's `SOMViewer`: drag, arrow keys, the projection and layer lists, `s` sample dots, `l` labels, … |
+| Rotate, change projection, layers, labels | as in GeoSOM's `SOMViewer`: drag, arrow keys, the projection list, *Reset view*, the *Lock poles* check box (keeps the north pole at the top while you drag) and the layer list below it, `s` sample dots, `l` labels, … |
 
 The panel under the map lists each path's number of hops, its cost, the highest U-height it climbs and the classes of the
 samples it passes. Example options: `--data` (iris, penguins, wine, clusters, a CSV file, or `tree`), `--paths`
